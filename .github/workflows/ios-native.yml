@@ -39,7 +39,7 @@ jobs:
       - name: Build iOS Simulator library
         run: |
           xcrun --sdk iphonesimulator clang++ \
-            -std=c++20 -stdlib=libc++ -dynamiclib -arch arm64 \
+            -std=c++20 -stdlib=libc++ -dynamiclib -arch arm64 -arch x86_64 \
             -isysroot "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
             -mios-simulator-version-min=15.0 \
             -fvisibility=hidden -Wall -Wextra -Wpedantic \
@@ -68,6 +68,10 @@ jobs:
             -derivedDataPath build/derived \
             CODE_SIGNING_ALLOWED=NO \
             build
+          test -f build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app/Frameworks/libmemorycore.dylib
+          xcrun --sdk iphonesimulator otool -L \
+            build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app/MemoryInspector \
+            | grep -q '@rpath/libmemorycore.dylib'
           ditto -c -k --sequesterRsrc --keepParent \
             build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app \
             build/MemoryInspector-iOS-Simulator.zip
@@ -97,6 +101,10 @@ jobs:
             -derivedDataPath build/derived-device \
             CODE_SIGNING_ALLOWED=NO \
             build
+          test -f build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app/Frameworks/libmemorycore.dylib
+          xcrun --sdk iphoneos otool -L \
+            build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app/MemoryInspector \
+            | grep -q '@rpath/libmemorycore.dylib'
           ditto -c -k --sequesterRsrc --keepParent \
             build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app \
             build/MemoryInspector-iOS-Device-unsigned.zip
@@ -106,6 +114,8 @@ jobs:
           (cd build/ipa && /usr/bin/zip -qry ../MemoryInspector-iOS-unsigned.ipa Payload)
           /usr/bin/unzip -Z -1 build/MemoryInspector-iOS-unsigned.ipa \
             | grep -q '^Payload/MemoryInspector.app/Info.plist$'
+          /usr/bin/unzip -Z -1 build/MemoryInspector-iOS-unsigned.ipa \
+            | grep -q '^Payload/MemoryInspector.app/Frameworks/libmemorycore.dylib$'
           /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
             build/ipa/Payload/MemoryInspector.app/Info.plist
 

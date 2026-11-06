@@ -29,9 +29,10 @@ snapshots, scan history, dataset mutation controls, and a draggable radial
 quick-access overlay. The control is in-app only. Source data is synthetic,
 mutable app-owned memory.
 
-The app's native bridge compiles `Native/MemoryCore.cpp` directly into the app
-target. The separate XCFramework build remains available for other authorized
-app integrations.
+The app links and embeds `MemoryCore.xcframework` as a dynamic library. Swift
+calls the C ABI in the embedded `libmemorycore.dylib`; the app does not compile
+a second copy of `MemoryCore.cpp` into its executable. The simulator library
+contains both Apple Silicon and Intel simulator slices.
 
 ## GitHub Actions builds
 
