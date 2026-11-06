@@ -39,11 +39,15 @@ The [iOS workflow](.github/workflows/ios-native.yml) runs on a macOS GitHub
 Actions runner. It builds Mach-O libraries for **iPhoneOS arm64** and **iOS
 Simulator arm64**, packages them as `MemoryCore.xcframework`, builds and
 launches the simulator app, builds an unsigned iPhone device app, and publishes
-all three as downloadable workflow artifacts. It runs on pushes to relevant
-source files and can be started manually from the repository's Actions tab.
+the framework, simulator app, device app, and an unsigned `.ipa` as downloadable
+workflow artifacts. The `.ipa` contains the complete `MemoryInspector.app`,
+including its SwiftUI interface and in-app floating overlay. It runs on pushes
+to relevant source files and can be started manually from the repository's
+Actions tab.
 
-The unsigned device app is not installable until signed with an Apple
-development/distribution identity and provisioning profile. The simulator app
-is for the iOS Simulator. iOS does not grant ordinary apps unrestricted access
-to other apps' process memory; this app is intentionally limited to its
-registered, owned test regions.
+The unsigned `.ipa` is a package, not an install-ready signed application.
+Sideloading it still requires signing it with a valid Apple development
+identity and provisioning profile using an appropriate signing tool. The
+simulator app is for the iOS Simulator. iOS does not grant ordinary apps
+unrestricted access to other apps' process memory; this app is intentionally
+limited to its registered, owned test regions.

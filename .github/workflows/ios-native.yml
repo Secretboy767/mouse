@@ -100,6 +100,14 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent \
             build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app \
             build/MemoryInspector-iOS-Device-unsigned.zip
+          mkdir -p build/ipa/Payload
+          cp -R build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app \
+            build/ipa/Payload/MemoryInspector.app
+          (cd build/ipa && /usr/bin/zip -qry ../MemoryInspector-iOS-unsigned.ipa Payload)
+          /usr/bin/unzip -Z -1 build/MemoryInspector-iOS-unsigned.ipa \
+            | grep -q '^Payload/MemoryInspector.app/Info.plist$'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
+            build/ipa/Payload/MemoryInspector.app/Info.plist
 
       - name: Upload iOS library artifact
         uses: actions/upload-artifact@v4
@@ -120,4 +128,11 @@ jobs:
         with:
           name: MemoryInspector-iOS-Device-unsigned
           path: build/MemoryInspector-iOS-Device-unsigned.zip
+          if-no-files-found: error
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: MemoryInspector-iOS-unsigned-IPA
+          path: build/MemoryInspector-iOS-unsigned.ipa
           if-no-files-found: error
