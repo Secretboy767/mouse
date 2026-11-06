@@ -72,6 +72,35 @@ jobs:
             build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app \
             build/MemoryInspector-iOS-Simulator.zip
 
+      - name: Launch app in iOS Simulator
+        run: |
+          DEVICE_ID="$(xcrun simctl list devices available --json | jq -r '[.devices | to_entries[] | select(.key | contains("SimRuntime.iOS")) | .value[] | select(.isAvailable)] | first | .udid')"
+          test -n "$DEVICE_ID"
+          DEVICE_STATE="$(xcrun simctl list devices available --json | jq -r --arg id "$DEVICE_ID" '[.devices[][] | select(.udid == $id)][0].state')"
+          if [ "$DEVICE_STATE" != "Booted" ]; then
+            xcrun simctl boot "$DEVICE_ID"
+          fi
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl install "$DEVICE_ID" \
+            build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app
+          LAUNCH_RESULT="$(xcrun simctl launch "$DEVICE_ID" com.secretboy767.MemoryInspector)"
+          echo "$LAUNCH_RESULT"
+          [[ "$LAUNCH_RESULT" == *"com.secretboy767.MemoryInspector"* ]]
+
+      - name: Build unsigned iPhone device app
+        run: |
+          xcodebuild \
+            -project iOSMemoryInspector.xcodeproj \
+            -scheme MemoryInspector \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/derived-device \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/derived-device/Build/Products/Release-iphoneos/MemoryInspector.app \
+            build/MemoryInspector-iOS-Device-unsigned.zip
+
       - name: Upload iOS library artifact
         uses: actions/upload-artifact@v4
         with:
@@ -84,4 +113,11 @@ jobs:
         with:
           name: MemoryInspector-iOS-Simulator
           path: build/MemoryInspector-iOS-Simulator.zip
+          if-no-files-found: error
+
+      - name: Upload unsigned iPhone app
+        uses: actions/upload-artifact@v4
+        with:
+          name: MemoryInspector-iOS-Device-unsigned
+          path: build/MemoryInspector-iOS-Device-unsigned.zip
           if-no-files-found: error
