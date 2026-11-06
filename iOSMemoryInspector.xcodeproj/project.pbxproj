@@ -104,7 +104,7 @@
 		};
 		500000000000000000000002 = {
 			isa = PBXProject;
-			attributes = { BuildIndependentTargetsIn parallel = 1; LastUpgradeCheck = 1600; };
+			attributes = { BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1600; };
 			buildConfigurationList = 700000000000000000000001;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
