@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths:
       - "Native/**"
+      - "App/**"
+      - "Core/**"
+      - "UI/**"
+      - "iOSMemoryInspector.xcodeproj/**"
+      - "CMakeLists.txt"
+      - "Tests/**"
       - ".github/workflows/ios-native.yml"
 
 permissions:
@@ -43,16 +49,39 @@ jobs:
 
       - name: Package XCFramework
         run: |
+          mkdir -p build/include
+          cp Native/MemoryCore.h build/include/MemoryCore.h
           xcodebuild -create-xcframework \
             -library build/ios/libmemorycore.dylib \
-            -headers Native \
+            -headers build/include \
             -library build/ios-simulator/libmemorycore.dylib \
-            -headers Native \
+            -headers build/include \
             -output build/MemoryCore.xcframework
+
+      - name: Build unsigned iPhone Simulator app
+        run: |
+          xcodebuild \
+            -project iOSMemoryInspector.xcodeproj \
+            -scheme MemoryInspector \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/derived/Build/Products/Release-iphonesimulator/MemoryInspector.app \
+            build/MemoryInspector-iOS-Simulator.zip
 
       - name: Upload iOS library artifact
         uses: actions/upload-artifact@v4
         with:
           name: MemoryCore-iOS-XCFramework
           path: build/MemoryCore.xcframework
+          if-no-files-found: error
+
+      - name: Upload iOS Simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: MemoryInspector-iOS-Simulator
+          path: build/MemoryInspector-iOS-Simulator.zip
           if-no-files-found: error

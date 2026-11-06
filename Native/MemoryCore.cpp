@@ -355,6 +355,31 @@ mi_status mi_region_write(mi_engine *engine,
     }
 }
 
+mi_status mi_region_read(mi_engine *engine,
+                         uint64_t region_identifier,
+                         uint64_t offset,
+                         uint8_t *bytes,
+                         size_t length) {
+    if (engine == nullptr || bytes == nullptr || length == 0) {
+        return MI_STATUS_INVALID_ARGUMENT;
+    }
+    try {
+        std::lock_guard lock(engine->mutex);
+        Region *region = find_region(engine, region_identifier);
+        if (region == nullptr) {
+            return MI_STATUS_NOT_FOUND;
+        }
+        if (offset > region->bytes.size() ||
+            length > region->bytes.size() - static_cast<size_t>(offset)) {
+            return MI_STATUS_INVALID_RANGE;
+        }
+        std::copy_n(region->bytes.data() + static_cast<size_t>(offset), length, bytes);
+        return MI_STATUS_OK;
+    } catch (...) {
+        return MI_STATUS_INTERNAL_ERROR;
+    }
+}
+
 mi_status mi_scan(mi_engine *engine,
                   uint64_t region_identifier,
                   mi_data_type type,
@@ -586,6 +611,58 @@ mi_status mi_candidates_page(mi_engine *engine,
         std::copy_n(region->bytes.data() + offset, engine->active_value_size,
                     candidate.value);
         output[index] = candidate;
+    }
+    *written = count;
+    return MI_STATUS_OK;
+}
+
+mi_status mi_candidates_page_flat(mi_engine *engine,
+                                  uint64_t page_index,
+                                  uint64_t *identifiers,
+                                  uint64_t *offsets,
+                                  uint8_t *values,
+                                  uint8_t *value_sizes,
+                                  size_t capacity,
+                                  size_t *written,
+                                  uint64_t *total_candidates) {
+    if (engine == nullptr || written == nullptr || total_candidates == nullptr ||
+        (capacity > 0 && (identifiers == nullptr || offsets == nullptr ||
+                          values == nullptr || value_sizes == nullptr)) ||
+        capacity > 250) {
+        return MI_STATUS_INVALID_ARGUMENT;
+    }
+    std::lock_guard lock(engine->mutex);
+    Region *region = find_region(engine, engine->active_region_identifier);
+    if (region == nullptr) {
+        return MI_STATUS_NOT_FOUND;
+    }
+    constexpr uint64_t page_size = 250;
+    *total_candidates = engine->candidates.size();
+    if (page_index > std::numeric_limits<uint64_t>::max() / page_size) {
+        *written = 0;
+        return MI_STATUS_OK;
+    }
+    const uint64_t start64 = page_index * page_size;
+    if (start64 >= engine->candidates.size()) {
+        *written = 0;
+        return MI_STATUS_OK;
+    }
+    const size_t start = static_cast<size_t>(start64);
+    const size_t count = std::min({capacity, static_cast<size_t>(page_size),
+                                   engine->candidates.size() - start});
+    for (size_t index = 0; index < count; ++index) {
+        const auto &stored = engine->candidates[start + index];
+        const size_t offset = static_cast<size_t>(stored.offset);
+        if (offset > region->bytes.size() ||
+            engine->active_value_size > region->bytes.size() - offset) {
+            return MI_STATUS_INVALID_RANGE;
+        }
+        identifiers[index] = stored.identifier;
+        offsets[index] = stored.offset;
+        value_sizes[index] = static_cast<uint8_t>(engine->active_value_size);
+        std::fill_n(values + (index * 8), 8, uint8_t{0});
+        std::copy_n(region->bytes.data() + offset, engine->active_value_size,
+                    values + (index * 8));
     }
     *written = count;
     return MI_STATUS_OK;

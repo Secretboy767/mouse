@@ -1,7 +1,8 @@
-# MemoryCore
+# Memory Inspector
 
-MemoryCore is a C++20 shared library for scanning explicitly registered,
-library-owned test buffers. It does not read other processes or retain pointers
+Memory Inspector is a native SwiftUI iOS app for inspecting explicitly
+registered, application-owned test buffers. Its C++20 core copies source data
+into native-owned regions; it does not read other processes or retain pointers
 to caller memory.
 
 ## Build and test on Linux
@@ -18,16 +19,31 @@ function copies the supplied bytes into owned storage; subsequent writes and
 scans operate only on that storage. Candidate retrieval is capped at 250 per
 page while all candidates remain available for filtering.
 
-## Build the iOS library with GitHub Actions
+## Native iOS UI and overlay
+
+Open [`iOSMemoryInspector.xcodeproj`](iOSMemoryInspector.xcodeproj) in Xcode.
+The app includes responsive iPhone tab navigation and an iPad sidebar, typed
+initial and progressive scans, 250-row result paging, candidate inspection,
+watchlist monitoring with value history, byte inspection, local SHA-256
+snapshots, scan history, dataset mutation controls, and a draggable radial
+quick-access overlay. The control is in-app only. Source data is synthetic,
+mutable app-owned memory.
+
+The app's native bridge compiles `Native/MemoryCore.cpp` directly into the app
+target. The separate XCFramework build remains available for other authorized
+app integrations.
+
+## GitHub Actions builds
 
 The [iOS workflow](.github/workflows/ios-native.yml) runs on a macOS GitHub
-Actions runner, but targets **iPhoneOS arm64** and **iOS Simulator arm64**. It
-packages both Mach-O dynamic libraries into `MemoryCore.xcframework` and
-publishes that as a downloadable workflow artifact. It runs on pushes that
-change `Native/` and can also be started manually from the repository's
-Actions tab with **Build iOS MemoryCore → Run workflow**.
+Actions runner. It builds Mach-O libraries for **iPhoneOS arm64** and **iOS
+Simulator arm64**, packages them as `MemoryCore.xcframework`, builds the
+unsigned simulator app, and publishes both as downloadable workflow artifacts.
+It runs on pushes to relevant source files and can be started manually from
+the repository's Actions tab.
 
-The generated XCFramework is a library for an iOS app to link and embed; it is
-not an iPhone app or an independently installable package. Embedding it in an
-app and distributing that app requires an Xcode app target and signing. This
-workspace has no such app project, so the workflow does not produce an IPA.
+The simulator app is not installable on a physical iPhone. Creating an
+iPhone-installable IPA requires an Apple signing identity and provisioning
+profile. iOS does not grant ordinary apps unrestricted access to other apps'
+process memory; the app is intentionally limited to its registered, owned test
+regions.

@@ -83,6 +83,11 @@ MI_EXPORT mi_status mi_region_write(mi_engine *engine,
                                     uint64_t offset,
                                     const uint8_t *bytes,
                                     size_t length);
+MI_EXPORT mi_status mi_region_read(mi_engine *engine,
+                                   uint64_t region_identifier,
+                                   uint64_t offset,
+                                   uint8_t *bytes,
+                                   size_t length);
 
 /* Values use the selected byte order. Previous-value conditions require an existing scan. */
 MI_EXPORT mi_status mi_scan(mi_engine *engine,
@@ -119,6 +124,15 @@ MI_EXPORT mi_status mi_candidates_page(mi_engine *engine,
                                        size_t capacity,
                                        size_t *written,
                                        uint64_t *total_candidates);
+MI_EXPORT mi_status mi_candidates_page_flat(mi_engine *engine,
+                                             uint64_t page_index,
+                                             uint64_t *identifiers,
+                                             uint64_t *offsets,
+                                             uint8_t *values,
+                                             uint8_t *value_sizes,
+                                             size_t capacity,
+                                             size_t *written,
+                                             uint64_t *total_candidates);
 MI_EXPORT mi_status mi_cancel(mi_engine *engine);
 MI_EXPORT const char *mi_status_message(mi_status status);
 

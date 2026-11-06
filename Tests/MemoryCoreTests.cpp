@@ -57,6 +57,17 @@ void scan_and_filter_owned_region() {
     require(mi_candidates_page(engine, 0, page.data(), page.size(), &written, &total));
     assert(written == 1 && total == 1);
     assert(page[0].offset == 4 && page[0].value_size == 4 && page[0].value[0] == 25);
+    std::array<uint64_t, 250> identifiers{};
+    std::array<uint64_t, 250> offsets{};
+    std::array<uint8_t, 250 * 8> values{};
+    std::array<uint8_t, 250> sizes{};
+    require(mi_candidates_page_flat(engine, 0, identifiers.data(), offsets.data(),
+                                    values.data(), sizes.data(), identifiers.size(),
+                                    &written, &total));
+    assert(written == 1 && offsets[0] == 4 && sizes[0] == 4 && values[0] == 25);
+    std::array<uint8_t, 4> readback{};
+    require(mi_region_read(engine, region, 4, readback.data(), readback.size()));
+    assert(readback == updated);
     mi_engine_destroy(engine);
 }
 
@@ -98,6 +109,9 @@ void big_endian_and_range_validation() {
                     nullptr, nullptr, &count));
     assert(count == 1);
     require(mi_region_write(engine, region, 3, target.data(), target.size()),
+            MI_STATUS_INVALID_RANGE);
+    std::array<uint8_t, 4> copied{};
+    require(mi_region_read(engine, region, 2, copied.data(), copied.size()),
             MI_STATUS_INVALID_RANGE);
     mi_engine_destroy(engine);
 }
