@@ -1,0 +1,58 @@
+name: Build iOS MemoryCore
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Native/**"
+      - ".github/workflows/ios-native.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-xcframework:
+    runs-on: macos-14
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build iPhone device library
+        run: |
+          mkdir -p build/ios build/ios-simulator
+          xcrun --sdk iphoneos clang++ \
+            -std=c++20 -stdlib=libc++ -dynamiclib -arch arm64 \
+            -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -miphoneos-version-min=15.0 \
+            -fvisibility=hidden -Wall -Wextra -Wpedantic \
+            -I Native Native/MemoryCore.cpp \
+            -Wl,-install_name,@rpath/libmemorycore.dylib \
+            -o build/ios/libmemorycore.dylib
+
+      - name: Build iOS Simulator library
+        run: |
+          xcrun --sdk iphonesimulator clang++ \
+            -std=c++20 -stdlib=libc++ -dynamiclib -arch arm64 \
+            -isysroot "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+            -mios-simulator-version-min=15.0 \
+            -fvisibility=hidden -Wall -Wextra -Wpedantic \
+            -I Native Native/MemoryCore.cpp \
+            -Wl,-install_name,@rpath/libmemorycore.dylib \
+            -o build/ios-simulator/libmemorycore.dylib
+
+      - name: Package XCFramework
+        run: |
+          xcodebuild -create-xcframework \
+            -library build/ios/libmemorycore.dylib \
+            -headers Native \
+            -library build/ios-simulator/libmemorycore.dylib \
+            -headers Native \
+            -output build/MemoryCore.xcframework
+
+      - name: Upload iOS library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MemoryCore-iOS-XCFramework
+          path: build/MemoryCore.xcframework
+          if-no-files-found: error
