@@ -55,7 +55,7 @@ enum ValueKind: Int, CaseIterable, Identifiable, Sendable {
     func encode(_ input: String, byteOrder: MemoryByteOrder = .littleEndian) -> [UInt8]? {
         let encoded: [UInt8]?
         switch self {
-        case .int8: encoded = Int8(input).map { [$0.bitPattern] }
+        case .int8: encoded = Int8(input).map { [UInt8(bitPattern: $0)] }
         case .uint8: encoded = UInt8(input).map { [$0] }
         case .int16: encoded = Int16(input).map { littleEndianBytes($0) }
         case .uint16: encoded = UInt16(input).map { littleEndianBytes($0) }
@@ -75,7 +75,7 @@ enum ValueKind: Int, CaseIterable, Identifiable, Sendable {
     func decode(_ bytes: [UInt8], byteOrder: MemoryByteOrder = .littleEndian) -> String {
         guard bytes.count >= width else { return "—" }
         let ordered = byteOrder == .littleEndian ? Array(bytes.prefix(width)) : Array(bytes.prefix(width).reversed())
-        switch self {
+        return switch self {
         case .int8: String(Int8(bitPattern: ordered[0]))
         case .uint8: String(ordered[0])
         case .int16: String(Int16(bitPattern: readUnsigned(ordered, as: UInt16.self)))
@@ -526,7 +526,7 @@ final class InspectorStore: ObservableObject {
         }
         var floating = [UInt8]()
         for number in 0..<2048 {
-            floating.append(contentsOf: littleEndianBytes(Float(number) / 4))
+            floating.append(contentsOf: littleEndianBytes((Float(number) / 4).bitPattern))
         }
         var binary = Array("MEMORY CORE / AUTHORIZED TEST REGION / UTF-8 / 0123456789".utf8)
         binary += [0, 0, 0, 0]

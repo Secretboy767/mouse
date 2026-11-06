@@ -39,7 +39,7 @@ struct MainInterface: View {
 
     private var sidebar: some View {
         List {
-            Section("Navigation") {
+            Section {
                 ForEach(MainSection.allCases) { section in
                     Button {
                         inspector.section = section
@@ -53,10 +53,12 @@ struct MainInterface: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .tracking(1.3)
             }
-            Section("Scope") {
+            Section {
                 Label("App-owned test regions", systemImage: "checkmark.shield")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(InspectorTheme.green)
+            } header: {
+                Text("SCOPE")
             }
         }
         .scrollContentBackground(.hidden)
